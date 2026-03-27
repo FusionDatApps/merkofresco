@@ -10,7 +10,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
   },
-  "keywords": [],
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "author": "",
   "license": "ISC",
   "type": "commonjs",
