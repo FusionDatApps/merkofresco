@@ -1,4 +1,4 @@
-const { registerUser, loginUser } = require("../services/auth.service");
+const { registerUser, loginUser, getCurrentUser } = require("../services/auth.service");
 const { registerSchema, loginSchema } = require("../validators/auth.validator");
 
 const register = async (req, res, next) => {
@@ -31,7 +31,23 @@ const login = async (req, res, next) => {
   }
 };
 
+const getMe = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    const user = await getCurrentUser(userId);
+
+    return res.status(200).json({
+      ok: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
+  getMe,
 };
