@@ -1,15 +1,22 @@
 export default function DashboardPage() {
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <p className="text-slate-600">
-        Placeholder de dashboard. Aquí se conectarán vistas protegidas más
-        adelante.
-      </p>
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
+        <div className="space-y-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">
+            Dashboard
+          </h1>
 
-      <div className="rounded-lg border bg-white p-4 text-sm text-slate-500">
-        Ruta creada para validar estructura y navegación.
-      </div>
-    </section>
+          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
+            Vista placeholder para validar estructura, layout y consistencia
+            visual antes de integrar autenticación y datos reales.
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-dashed border-[var(--color-border)] bg-white p-6 text-sm text-[var(--color-text-secondary)]">
+        Área de contenido futura.
+      </section>
+    </div>
   );
 }

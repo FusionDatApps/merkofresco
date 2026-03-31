@@ -1,8 +1,8 @@
 export default function Footer() {
   return (
-    <footer className="border-t bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-4 text-sm text-slate-600">
-        © 2026 MerKofresco. Frontend base.
+    <footer className="border-t border-gray-200 bg-white">
+      <div className="container-base py-4 text-sm text-gray-500 text-center">
+        © {new Date().getFullYear()} MerKofresco — Plataforma en desarrollo
       </div>
     </footer>
   );

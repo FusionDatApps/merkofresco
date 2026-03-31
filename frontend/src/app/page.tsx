@@ -1,43 +1,52 @@
-export default function Home() {
+export default function HomePage() {
   return (
-    <section className="space-y-6">
-      <div className="space-y-3">
-        <span className="inline-block rounded-md bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-          Frontend base
-        </span>
+    <div className="space-y-8">
+      <section className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
+        <div className="max-w-2xl space-y-3">
+          <span className="inline-flex rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-medium text-[var(--color-primary)]">
+            Base visual inicial
+          </span>
 
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          MerKofresco
-        </h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-[var(--color-text)] sm:text-4xl">
+            MerKofresco
+          </h1>
 
-        <p className="max-w-2xl text-base text-slate-600 sm:text-lg">
-          Base inicial del frontend lista para navegación, layout reutilizable y
-          futura integración de autenticación.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border bg-white p-4">
-          <h2 className="mb-2 text-lg font-semibold">Estructura sólida</h2>
-          <p className="text-sm text-slate-600">
-            Layout reutilizable y separación limpia de responsabilidades.
+          <p className="text-sm leading-6 text-[var(--color-text-secondary)] sm:text-base">
+            Plataforma de productos frescos en construcción, con una base
+            frontend limpia, coherente y lista para integrar autenticación real
+            sin romper lo ya validado.
           </p>
         </div>
+      </section>
 
-        <div className="rounded-lg border bg-white p-4">
-          <h2 className="mb-2 text-lg font-semibold">Navegación base</h2>
-          <p className="text-sm text-slate-600">
-            Rutas preparadas para Inicio, Login y Dashboard.
+      <section className="grid gap-4 md:grid-cols-3">
+        <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
+            Catálogo
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+            Espacio base para productos, categorías y estructura comercial.
           </p>
-        </div>
+        </article>
 
-        <div className="rounded-lg border bg-white p-4">
-          <h2 className="mb-2 text-lg font-semibold">Listo para Día 6B</h2>
-          <p className="text-sm text-slate-600">
-            Base preparada para integrar autenticación sin rehacer estructura.
+        <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
+            Operación
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+            Preparado para pedidos, flujo de compra y administración interna.
           </p>
-        </div>
-      </div>
-    </section>
+        </article>
+
+        <article className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
+            Clientes
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+            Base lista para usuarios, sesiones y futuras vistas privadas.
+          </p>
+        </article>
+      </section>
+    </div>
   );
 }
