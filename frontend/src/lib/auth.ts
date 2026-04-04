@@ -7,7 +7,11 @@ export type LoginPayload = {
 };
 
 export type LoginResponse = {
-  token: string;
+  ok: boolean;
+  data: {
+    user?: unknown;
+    token: string;
+  };
 };
 
 export type AuthUser = {
@@ -18,17 +22,19 @@ export type AuthUser = {
 };
 
 export async function login(payload: LoginPayload): Promise<string> {
-  const data = await apiFetch<LoginResponse>("/api/auth/login", {
+  const response = await apiFetch<LoginResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
-  if (!data?.token) {
-    throw new Error("El backend no devolvió token");
+  const token = response?.data?.token;
+
+  if (!token) {
+    throw new Error("El backend no devolvió token válido");
   }
 
-  setToken(data.token);
-  return data.token;
+  setToken(token);
+  return token;
 }
 
 export async function getMe(token?: string): Promise<AuthUser> {
@@ -38,7 +44,17 @@ export async function getMe(token?: string): Promise<AuthUser> {
     throw new Error("Token ausente");
   }
 
-  return apiFetch<AuthUser>("/api/auth/me", { method: "GET" }, authToken);
+  const response = await apiFetch<{ ok: boolean; data: AuthUser }>(
+    "/api/auth/me",
+    { method: "GET" },
+    authToken
+  );
+
+  if (!response?.data) {
+    throw new Error("El backend no devolvió usuario válido");
+  }
+
+  return response.data;
 }
 
 export function logout(): void {
