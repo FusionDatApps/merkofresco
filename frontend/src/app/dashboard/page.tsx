@@ -1,44 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AuthUser, getMe, logout } from "@/lib/auth";
 import { getToken } from "@/lib/storage";
 
 export default function DashboardPage() {
-  const router = useRouter();
-
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function validateSession() {
+    let active = true;
+
+    async function init() {
       const token = getToken();
 
       if (!token) {
-        router.replace("/login");
+        window.location.replace("/login");
         return;
       }
 
       try {
-        const me = await getMe(token);
+        const me = await getMe();
+
+        if (!active) return;
+
         setUser(me);
+        setError("");
       } catch (err) {
         logout();
+
+        if (!active) return;
 
         const message =
           err instanceof Error ? err.message : "Sesión no válida";
 
         setError(message);
-        router.replace("/login");
+        setUser(null);
+        window.location.replace("/login");
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
-    validateSession();
-  }, [router]);
+    init();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -82,7 +94,7 @@ export default function DashboardPage() {
           </p>
           <p>
             <span className="font-medium text-neutral-900">Email:</span>{" "}
-            {user.email}
+            {user.email || "Sin email"}
           </p>
           <p>
             <span className="font-medium text-neutral-900">ID:</span>{" "}

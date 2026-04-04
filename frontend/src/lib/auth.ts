@@ -1,66 +1,103 @@
 import { apiFetch } from "./api";
-import { getToken, removeToken, setToken } from "./storage";
-
-export type LoginPayload = {
-  email: string;
-  password: string;
-};
-
-export type LoginResponse = {
-  ok: boolean;
-  data: {
-    user?: unknown;
-    token: string;
-  };
-};
+import { getToken, setToken, removeToken } from "./storage";
 
 export type AuthUser = {
   id: number | string;
   name?: string;
-  email: string;
+  email?: string;
   role?: string;
 };
 
-export async function login(payload: LoginPayload): Promise<string> {
-  const response = await apiFetch<LoginResponse>("/api/auth/login", {
+type LoginApiResponse = {
+  ok?: boolean;
+  data?: {
+    user?: AuthUser;
+    token?: string;
+  };
+  user?: AuthUser;
+  token?: string;
+  message?: string;
+};
+
+type RegisterApiResponse = {
+  ok?: boolean;
+  data?: unknown;
+  message?: string;
+};
+
+type MeApiResponse = {
+  ok?: boolean;
+  data?: {
+    user?: AuthUser;
+  } | AuthUser;
+  user?: AuthUser;
+  message?: string;
+};
+
+export async function login(email: string, password: string) {
+  const res = await apiFetch<LoginApiResponse>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ email, password }),
   });
 
-  const token = response?.data?.token;
+  const token = res?.data?.token || res?.token;
+  const user = res?.data?.user || res?.user;
 
   if (!token) {
-    throw new Error("El backend no devolvió token válido");
+    throw new Error(res?.message || "No se pudo iniciar sesión");
   }
 
   setToken(token);
-  return token;
+
+  return {
+    token,
+    user: user || null,
+  };
 }
 
-export async function getMe(token?: string): Promise<AuthUser> {
-  const authToken = token ?? getToken();
+export async function register(name: string, email: string, password: string) {
+  const res = await apiFetch<RegisterApiResponse>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ name, email, password }),
+  });
 
-  if (!authToken) {
-    throw new Error("Token ausente");
+  if (res?.ok === false) {
+    throw new Error(res?.message || "No se pudo registrar el usuario");
   }
 
-  const response = await apiFetch<{ ok: boolean; data: AuthUser }>(
+  return res;
+}
+
+export async function getMe() {
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("No hay sesión activa");
+  }
+
+  const res = await apiFetch<MeApiResponse>(
     "/api/auth/me",
     { method: "GET" },
-    authToken
+    token
   );
 
-  if (!response?.data) {
-    throw new Error("El backend no devolvió usuario válido");
+  let user: AuthUser | undefined;
+
+  if (res?.data && typeof res.data === "object" && "user" in res.data) {
+    user = (res.data as { user?: AuthUser }).user;
+  } else if (res?.data && typeof res.data === "object") {
+    user = res.data as AuthUser;
+  } else {
+    user = res?.user;
   }
 
-  return response.data;
+  if (!user) {
+    throw new Error(res?.message || "No se pudo obtener la sesión");
+  }
+
+  return user;
 }
 
-export function logout(): void {
+export function logout() {
   removeToken();
-}
-
-export function isAuthenticated(): boolean {
-  return Boolean(getToken());
 }
