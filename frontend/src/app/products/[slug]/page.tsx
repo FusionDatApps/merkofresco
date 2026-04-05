@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { getProductById, getProductBySlug, Product } from "@/lib/products";
+import { addToCart } from "@/lib/cart";
 
 export default function ProductDetailPage() {
   const params = useParams();
+
   const slugParam = params?.slug;
+
   const slug = useMemo(() => {
     if (Array.isArray(slugParam)) {
       return slugParam[0] ?? "";
@@ -56,6 +59,27 @@ export default function ProductDetailPage() {
 
     loadProductDetail();
   }, [slug]);
+
+  function handleAddToCart(product: Product) {
+    const productName = product.name?.trim() || "Producto sin nombre";
+
+    const numericPrice =
+      typeof product.price === "number"
+        ? product.price
+        : Number(product.price);
+
+    addToCart({
+      productId: product.id,
+      name: productName,
+      slug: product.slug?.trim() || "",
+      price: Number.isFinite(numericPrice) ? numericPrice : 0,
+      imageUrl: product.images?.[0]?.url || null,
+      unit: product.unit || null,
+    });
+
+    // evento para sincronizar header sin estado global
+    window.dispatchEvent(new Event("cart-updated"));
+  }
 
   if (loading) {
     return (
@@ -158,17 +182,26 @@ export default function ProductDetailPage() {
 
   const imageUrl = product.images?.[0]?.url;
   const productName = product.name?.trim() || "Producto sin nombre";
-  const formattedPrice = Number.isFinite(product.price)
-    ? `$${product.price.toLocaleString("es-CO")}`
+
+  const numericPrice =
+    typeof product.price === "number"
+      ? product.price
+      : Number(product.price);
+
+  const formattedPrice = Number.isFinite(numericPrice)
+    ? `$${numericPrice.toLocaleString("es-CO")}`
     : "Precio no disponible";
+
   const categoryName = product.category?.name || "Sin categoría";
   const description = product.description?.trim() || "Sin descripción disponible";
+
   const stockLabel =
     typeof product.stock === "number"
       ? product.stock > 0
         ? `${product.stock}${product.unit ? ` ${product.unit}` : ""}`
         : "Sin stock"
       : "Stock no definido";
+
   const slugLabel = product.slug?.trim();
 
   return (
@@ -216,6 +249,15 @@ export default function ProductDetailPage() {
             <p className="text-sm font-medium text-gray-900">Disponibilidad</p>
             <p className="mt-1 text-sm text-gray-600">{stockLabel}</p>
           </div>
+
+          {/* BOTÓN CARRITO */}
+          <button
+            type="button"
+            onClick={() => handleAddToCart(product)}
+            className="w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+          >
+            Agregar al carrito
+          </button>
 
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-gray-900">Descripción</h2>

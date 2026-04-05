@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getProducts, Product } from "@/lib/products";
+import { addToCart } from "@/lib/cart";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -30,6 +31,26 @@ export default function ProductsPage() {
 
     loadProducts();
   }, []);
+
+  function handleAddToCart(product: Product) {
+    const productName = product.name?.trim() || "Producto sin nombre";
+
+    const numericPrice =
+      typeof product.price === "number"
+        ? product.price
+        : Number(product.price);
+
+    addToCart({
+      productId: product.id,
+      name: productName,
+      slug: product.slug?.trim() || "",
+      price: Number.isFinite(numericPrice) ? numericPrice : 0,
+      imageUrl: product.images?.[0]?.url || null,
+      unit: product.unit || null,
+    });
+
+    window.dispatchEvent(new Event("cart-updated"));
+  }
 
   if (loading) {
     return (
@@ -77,31 +98,37 @@ export default function ProductsPage() {
 
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => {
-          const imageUrl = product.images?.[0]?.url;
+          const imageUrl = product.images?.[0]?.url || null;
           const productName = product.name?.trim() || "Producto sin nombre";
+
           const numericPrice =
             typeof product.price === "number"
               ? product.price
               : Number(product.price);
+
           const formattedPrice = Number.isFinite(numericPrice)
             ? `$${numericPrice.toLocaleString("es-CO")}`
             : "Precio no disponible";
+
           const stockLabel =
             typeof product.stock === "number"
               ? product.stock > 0
                 ? `Stock: ${product.stock}${product.unit ? ` ${product.unit}` : ""}`
                 : "Sin stock"
               : "Stock no definido";
+
           const categoryName = product.category?.name || "Sin categoría";
           const productSlug = product.slug?.trim();
 
           return (
-            <Link
+            <article
               key={product.id}
-              href={productSlug ? `/products/${productSlug}` : `/products`}
-              className="block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
             >
-              <article>
+              <Link
+                href={productSlug ? `/products/${productSlug}` : "/products"}
+                className="block focus:outline-none focus:ring-2 focus:ring-green-600"
+              >
                 <div className="flex h-48 items-center justify-center bg-gray-100">
                   {imageUrl ? (
                     <img
@@ -116,7 +143,7 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                <div className="space-y-3 p-4">
+                <div className="space-y-3 p-4 pb-3">
                   <h2 className="line-clamp-2 text-lg font-semibold text-gray-900">
                     {productName}
                   </h2>
@@ -133,8 +160,18 @@ export default function ProductsPage() {
                     ) : null}
                   </div>
                 </div>
-              </article>
-            </Link>
+              </Link>
+
+              <div className="px-4 pb-4">
+                <button
+                  type="button"
+                  onClick={() => handleAddToCart(product)}
+                  className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700"
+                >
+                  Agregar al carrito
+                </button>
+              </div>
+            </article>
           );
         })}
       </section>

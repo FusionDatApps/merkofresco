@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getMe, logout } from "@/lib/auth";
 import { getToken } from "@/lib/storage";
+import { getCartCount } from "@/lib/cart";
 
 type HeaderUser = {
   email?: string;
@@ -16,9 +17,14 @@ export default function Header() {
 
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     let active = true;
+
+    function loadCartCount() {
+      setCartCount(getCartCount());
+    }
 
     async function loadSession() {
       const token = getToken();
@@ -53,11 +59,19 @@ export default function Header() {
       }
     }
 
+    function handleCartUpdated() {
+      loadCartCount();
+    }
+
     setLoading(true);
     loadSession();
+    loadCartCount();
+
+    window.addEventListener("cart-updated", handleCartUpdated);
 
     return () => {
       active = false;
+      window.removeEventListener("cart-updated", handleCartUpdated);
     };
   }, [pathname]);
 
@@ -76,12 +90,21 @@ export default function Header() {
 
         <nav className="flex items-center gap-4 text-sm text-neutral-700">
           <Link href="/" className="hover:text-neutral-900">
-  Inicio
-</Link>
+            Inicio
+          </Link>
 
-<Link href="/products" className="hover:text-neutral-900">
-  Productos
-</Link>
+          <Link href="/products" className="hover:text-neutral-900">
+            Productos
+          </Link>
+
+          <Link href="/cart" className="inline-flex items-center hover:text-neutral-900">
+            Carrito
+            {cartCount > 0 ? (
+              <span className="ml-2 rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+                {cartCount}
+              </span>
+            ) : null}
+          </Link>
 
           {loading ? (
             <span className="text-neutral-400">Cargando...</span>
