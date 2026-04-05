@@ -2,18 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { getMe, logout } from "@/lib/auth";
 import { getToken } from "@/lib/storage";
 
 type HeaderUser = {
-  email: string;
+  email?: string;
   name?: string;
 };
 
 export default function Header() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +32,7 @@ export default function Header() {
       }
 
       try {
-        const me = await getMe(token);
+        const me = await getMe();
 
         if (active) {
           setUser({
@@ -43,6 +42,7 @@ export default function Header() {
         }
       } catch {
         logout();
+
         if (active) {
           setUser(null);
         }
@@ -53,6 +53,7 @@ export default function Header() {
       }
     }
 
+    setLoading(true);
     loadSession();
 
     return () => {
@@ -63,8 +64,7 @@ export default function Header() {
   function handleLogout() {
     logout();
     setUser(null);
-    router.push("/login");
-    router.refresh();
+    window.location.replace("/login");
   }
 
   return (
@@ -86,10 +86,13 @@ export default function Header() {
               <Link href="/dashboard" className="hover:text-neutral-900">
                 Dashboard
               </Link>
+
               <span className="hidden text-neutral-500 md:inline">
-                {user.name || user.email}
+                {user.name || user.email || "Usuario"}
               </span>
+
               <button
+                type="button"
                 onClick={handleLogout}
                 className="rounded-lg border border-neutral-300 px-3 py-2 text-sm hover:border-neutral-900 hover:text-neutral-900"
               >
