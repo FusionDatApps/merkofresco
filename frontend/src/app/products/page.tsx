@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getProducts, Product } from "@/lib/products";
 
@@ -78,55 +79,62 @@ export default function ProductsPage() {
         {products.map((product) => {
           const imageUrl = product.images?.[0]?.url;
           const productName = product.name?.trim() || "Producto sin nombre";
-          const formattedPrice =
+          const numericPrice =
             typeof product.price === "number"
-              ? `$${product.price.toLocaleString("es-CO")}`
-              : "Precio no disponible";
+              ? product.price
+              : Number(product.price);
+          const formattedPrice = Number.isFinite(numericPrice)
+            ? `$${numericPrice.toLocaleString("es-CO")}`
+            : "Precio no disponible";
           const stockLabel =
             typeof product.stock === "number"
               ? product.stock > 0
-                ? `Stock: ${product.stock}`
+                ? `Stock: ${product.stock}${product.unit ? ` ${product.unit}` : ""}`
                 : "Sin stock"
               : "Stock no definido";
           const categoryName = product.category?.name || "Sin categoría";
+          const productSlug = product.slug?.trim();
 
           return (
-            <article
+            <Link
               key={product.id}
-              className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
+              href={productSlug ? `/products/${productSlug}` : `/products`}
+              className="block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-600"
             >
-              <div className="flex h-48 items-center justify-center bg-gray-100">
-                {imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt={productName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-gray-400">
-                    Sin imagen disponible
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-3 p-4">
-                <h2 className="line-clamp-2 text-lg font-semibold text-gray-900">
-                  {productName}
-                </h2>
-
-                <p className="text-xl font-bold text-green-700">
-                  {formattedPrice}
-                </p>
-
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>{stockLabel}</p>
-                  <p>{categoryName}</p>
-                  {product.slug ? (
-                    <p className="text-xs text-gray-400">slug: {product.slug}</p>
-                  ) : null}
+              <article>
+                <div className="flex h-48 items-center justify-center bg-gray-100">
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={productName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-gray-400">
+                      Sin imagen disponible
+                    </div>
+                  )}
                 </div>
-              </div>
-            </article>
+
+                <div className="space-y-3 p-4">
+                  <h2 className="line-clamp-2 text-lg font-semibold text-gray-900">
+                    {productName}
+                  </h2>
+
+                  <p className="text-xl font-bold text-green-700">
+                    {formattedPrice}
+                  </p>
+
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p>{stockLabel}</p>
+                    <p>{categoryName}</p>
+                    {productSlug ? (
+                      <p className="text-xs text-gray-400">slug: {productSlug}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            </Link>
           );
         })}
       </section>
