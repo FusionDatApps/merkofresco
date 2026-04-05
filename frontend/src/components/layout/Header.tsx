@@ -76,8 +76,12 @@ export default function Header() {
 
         <nav className="flex items-center gap-4 text-sm text-neutral-700">
           <Link href="/" className="hover:text-neutral-900">
-            Inicio
-          </Link>
+  Inicio
+</Link>
+
+<Link href="/products" className="hover:text-neutral-900">
+  Productos
+</Link>
 
           {loading ? (
             <span className="text-neutral-400">Cargando...</span>
