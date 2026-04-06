@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CartItem,
   clearCart,
@@ -18,6 +19,7 @@ function formatPrice(value: number) {
 }
 
 export default function CartPage() {
+  const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
 
   function loadCart() {
@@ -207,9 +209,8 @@ export default function CartPage() {
           <div className="mt-6 space-y-3">
             <button
               type="button"
-              disabled
-              className="w-full cursor-not-allowed rounded-xl bg-gray-300 px-4 py-3 text-sm font-semibold text-white"
-              title="Checkout pendiente para una fase posterior"
+              onClick={() => router.push("/checkout")}
+              className="w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
             >
               Continuar compra
             </button>
