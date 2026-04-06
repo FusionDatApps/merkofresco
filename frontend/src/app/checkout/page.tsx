@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CartItem,
@@ -10,6 +10,7 @@ import {
   getCartLineSubtotal,
   getCartTotal,
 } from "@/lib/cart";
+import { createOrder } from "@/lib/orders";
 
 function formatPrice(value: number) {
   return `$${value.toLocaleString("es-CO")}`;
@@ -29,6 +30,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [form, setForm] = useState<FormState>({
     name: "",
@@ -82,6 +84,10 @@ export default function CheckoutPage() {
         [name]: "",
       }));
     }
+
+    if (submitError) {
+      setSubmitError("");
+    }
   }
 
   function validate(): FormErrors {
@@ -102,7 +108,7 @@ export default function CheckoutPage() {
     return nextErrors;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     const validationErrors = validate();
@@ -112,15 +118,43 @@ export default function CheckoutPage() {
       return;
     }
 
-    setSubmitting(true);
+    try {
+      setSubmitting(true);
+      setSubmitError("");
 
-    // Simulación limpia
-    clearCart();
+      const payload = {
+        customerName: form.name.trim(),
+        customerPhone: form.phone.trim(),
+        customerAddress: form.address.trim(),
+        items: cart.map((item) => ({
+          productId: item.productId,
+          productName: item.name,
+          unitPrice: item.price,
+          quantity: item.quantity,
+          lineTotal: item.price * item.quantity,
+        })),
+        total,
+      };
 
-    // Notificar a header + cart
-    window.dispatchEvent(new Event("cart-updated"));
+      const response = await createOrder(payload);
 
-    router.replace("/checkout/success");
+      if (!response.ok) {
+        throw new Error(response.message || "No se pudo crear la orden");
+      }
+
+      clearCart();
+      window.dispatchEvent(new Event("cart-updated"));
+      router.replace("/checkout/success");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo procesar el pedido";
+
+      setSubmitError(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (loading) {
@@ -137,7 +171,6 @@ export default function CheckoutPage() {
       <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        {/* FORMULARIO */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Datos del cliente</h2>
 
@@ -187,6 +220,12 @@ export default function CheckoutPage() {
               )}
             </div>
 
+            {submitError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Link
                 href="/cart"
@@ -198,7 +237,7 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white"
+                className="rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {submitting ? "Procesando..." : "Confirmar pedido"}
               </button>
@@ -206,7 +245,6 @@ export default function CheckoutPage() {
           </form>
         </section>
 
-        {/* RESUMEN */}
         <aside className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Resumen</h2>
 
@@ -228,7 +266,7 @@ export default function CheckoutPage() {
             })}
           </div>
 
-          <div className="mt-6 border-t pt-4 font-semibold flex justify-between">
+          <div className="mt-6 flex justify-between border-t pt-4 font-semibold">
             <span>Total</span>
             <span>{formatPrice(total)}</span>
           </div>
