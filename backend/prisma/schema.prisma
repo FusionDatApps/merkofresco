@@ -18,6 +18,10 @@ enum CartStatus {
   CONVERTED
 }
 
+enum OrderStatus {
+  PENDING
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -25,6 +29,7 @@ model User {
   password  String
   role      UserRole @default(CUSTOMER)
   carts     Cart[]
+  orders    Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -55,6 +60,7 @@ model Product {
   category    Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   images      ProductImage[]
   cartItems   CartItem[]
+  orderItems  OrderItem[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -76,13 +82,13 @@ model ProductImage {
 }
 
 model Cart {
-  id        Int         @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   userId    Int
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status    CartStatus  @default(ACTIVE)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    CartStatus @default(ACTIVE)
   items     CartItem[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -101,5 +107,39 @@ model CartItem {
 
   @@unique([cartId, productId])
   @@index([cartId])
+  @@index([productId])
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  userId          Int?
+  customerName    String
+  customerPhone   String
+  customerAddress String
+  total           Decimal     @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  items           OrderItem[]
+  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  productName String
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  quantity    Int
+  lineTotal   Decimal  @db.Decimal(10, 2)
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
   @@index([productId])
 }
