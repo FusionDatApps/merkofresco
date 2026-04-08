@@ -1,20 +1,13 @@
 import { apiFetch } from "./api";
+import { getToken } from "./storage";
 
-type CreateOrderPayload = {
+export type CreateOrderPayload = {
   customerName: string;
   customerPhone: string;
   customerAddress: string;
-  items: {
-    productId: number;
-    productName: string;
-    unitPrice: number;
-    quantity: number;
-    lineTotal: number;
-  }[];
-  total: number;
 };
 
-type CreateOrderResponse = {
+export type CreateOrderResponse = {
   ok: boolean;
   message: string;
   data: {
@@ -30,8 +23,18 @@ type CreateOrderResponse = {
 };
 
 export async function createOrder(payload: CreateOrderPayload) {
-  return apiFetch<CreateOrderResponse>("/api/orders", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  const token = getToken();
+
+  if (!token) {
+    throw new Error("Debes iniciar sesión para confirmar el pedido");
+  }
+
+  return apiFetch<CreateOrderResponse>(
+    "/api/orders",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    token
+  );
 }

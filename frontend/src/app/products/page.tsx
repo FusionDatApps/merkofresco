@@ -9,6 +9,9 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cartError, setCartError] = useState<string | null>(null);
+  const [addingId, setAddingId] = useState<number | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProducts() {
@@ -32,24 +35,31 @@ export default function ProductsPage() {
     loadProducts();
   }, []);
 
-  function handleAddToCart(product: Product) {
-    const productName = product.name?.trim() || "Producto sin nombre";
+  async function handleAddToCart(product: Product) {
+    try {
+      setCartError(null);
+      setSuccessMessage(null);
+      setAddingId(product.id);
 
-    const numericPrice =
-      typeof product.price === "number"
-        ? product.price
-        : Number(product.price);
+      await addToCart(product.id, 1);
 
-    addToCart({
-      productId: product.id,
-      name: productName,
-      slug: product.slug?.trim() || "",
-      price: Number.isFinite(numericPrice) ? numericPrice : 0,
-      imageUrl: product.images?.[0]?.url || null,
-      unit: product.unit || null,
-    });
+      setSuccessMessage(
+        `"${product.name}" fue agregado correctamente al carrito.`
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "No se pudo agregar el producto al carrito";
 
-    window.dispatchEvent(new Event("cart-updated"));
+      setCartError(
+        message === "Stock insuficiente"
+          ? `No hay stock suficiente para "${product.name}".`
+          : message
+      );
+    } finally {
+      setAddingId(null);
+    }
   }
 
   if (loading) {
@@ -67,7 +77,7 @@ export default function ProductsPage() {
     return (
       <main className="mx-auto max-w-7xl px-4 py-10">
         <h1 className="mb-6 text-3xl font-bold text-gray-900">Productos</h1>
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
           <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
       </main>
@@ -96,6 +106,24 @@ export default function ProductsPage() {
         </p>
       </div>
 
+      {cartError ? (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 shadow-sm">
+          <p className="text-sm font-semibold text-red-800">
+            No se pudo agregar al carrito
+          </p>
+          <p className="mt-1 text-sm text-red-700">{cartError}</p>
+        </div>
+      ) : null}
+
+      {successMessage ? (
+        <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-4 shadow-sm">
+          <p className="text-sm font-semibold text-green-800">
+            Producto agregado
+          </p>
+          <p className="mt-1 text-sm text-green-700">{successMessage}</p>
+        </div>
+      ) : null}
+
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => {
           const imageUrl = product.images?.[0]?.url || null;
@@ -110,9 +138,12 @@ export default function ProductsPage() {
             ? `$${numericPrice.toLocaleString("es-CO")}`
             : "Precio no disponible";
 
+          const hasStock =
+            typeof product.stock === "number" ? product.stock > 0 : false;
+
           const stockLabel =
             typeof product.stock === "number"
-              ? product.stock > 0
+              ? hasStock
                 ? `Stock: ${product.stock}${product.unit ? ` ${product.unit}` : ""}`
                 : "Sin stock"
               : "Stock no definido";
@@ -129,7 +160,13 @@ export default function ProductsPage() {
                 href={productSlug ? `/products/${productSlug}` : "/products"}
                 className="block focus:outline-none focus:ring-2 focus:ring-green-600"
               >
-                <div className="flex h-48 items-center justify-center bg-gray-100">
+                <div className="relative flex h-48 items-center justify-center bg-gray-100">
+                  {!hasStock ? (
+                    <span className="absolute left-3 top-3 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                      Sin stock
+                    </span>
+                  ) : null}
+
                   {imageUrl ? (
                     <img
                       src={imageUrl}
@@ -153,7 +190,9 @@ export default function ProductsPage() {
                   </p>
 
                   <div className="space-y-1 text-sm text-gray-600">
-                    <p>{stockLabel}</p>
+                    <p className={hasStock ? "" : "font-medium text-red-600"}>
+                      {stockLabel}
+                    </p>
                     <p>{categoryName}</p>
                     {productSlug ? (
                       <p className="text-xs text-gray-400">slug: {productSlug}</p>
@@ -166,9 +205,14 @@ export default function ProductsPage() {
                 <button
                   type="button"
                   onClick={() => handleAddToCart(product)}
-                  className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700"
+                  disabled={addingId === product.id || !hasStock}
+                  className="w-full rounded-xl px-4 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-70 bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
                 >
-                  Agregar al carrito
+                  {!hasStock
+                    ? "Sin stock disponible"
+                    : addingId === product.id
+                    ? "Agregando..."
+                    : "Agregar al carrito"}
                 </button>
               </div>
             </article>

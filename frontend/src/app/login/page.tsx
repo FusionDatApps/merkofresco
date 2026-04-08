@@ -11,13 +11,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const token = getToken();
-
-    if (token) {
-      window.location.replace("/dashboard");
-    }
-  }, []);
+ useEffect(() => {
+  const token = getToken();
+  if (token) {
+    // opcional: podrías validar con getMe aquí en el futuro
+    // por ahora lo dejamos suave
+    console.log("Token detectado");
+  }
+}, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

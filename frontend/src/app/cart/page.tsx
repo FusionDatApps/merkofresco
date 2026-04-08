@@ -4,14 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CartItem,
+  BackendCartItem,
   clearCart,
-  decreaseQuantity,
   getCart,
-  getCartLineSubtotal,
-  getCartTotal,
-  increaseQuantity,
-  removeFromCart,
+  removeCartItem,
+  updateCartItem,
 } from "@/lib/cart";
 
 function formatPrice(value: number) {
@@ -20,27 +17,109 @@ function formatPrice(value: number) {
 
 export default function CartPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[]>([]);
 
-  function loadCart() {
-    setCart(getCart());
+  const [cart, setCart] = useState<BackendCartItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState("");
+
+  async function loadCart() {
+    try {
+      setActionError("");
+      const data = await getCart();
+      setCart(data.items);
+      setTotal(data.total);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo cargar el carrito";
+      setActionError(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     loadCart();
-
-    function handleCartUpdated() {
-      loadCart();
-    }
-
-    window.addEventListener("cart-updated", handleCartUpdated);
-
-    return () => {
-      window.removeEventListener("cart-updated", handleCartUpdated);
-    };
   }, []);
 
-  const total = getCartTotal();
+  async function increase(item: BackendCartItem) {
+    try {
+      setActionError("");
+      const data = await updateCartItem(item.id, item.quantity + 1);
+      setCart(data.items);
+      setTotal(data.total);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar la cantidad";
+      setActionError(message);
+    }
+  }
+
+  async function decrease(item: BackendCartItem) {
+    try {
+      setActionError("");
+
+      if (item.quantity <= 1) {
+        const data = await removeCartItem(item.id);
+        setCart(data.items);
+        setTotal(data.total);
+        return;
+      }
+
+      const data = await updateCartItem(item.id, item.quantity - 1);
+      setCart(data.items);
+      setTotal(data.total);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar la cantidad";
+      setActionError(message);
+    }
+  }
+
+  async function remove(item: BackendCartItem) {
+    try {
+      setActionError("");
+      const data = await removeCartItem(item.id);
+      setCart(data.items);
+      setTotal(data.total);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo eliminar el producto";
+      setActionError(message);
+    }
+  }
+
+  async function handleClear() {
+    try {
+      setActionError("");
+      const data = await clearCart();
+      setCart(data.items);
+      setTotal(data.total);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo vaciar el carrito";
+      setActionError(message);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        <h1 className="text-3xl font-bold text-gray-900">Tu carrito</h1>
+        <p className="mt-4 text-sm text-gray-600">Cargando carrito...</p>
+      </main>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -85,24 +164,29 @@ export default function CartPage() {
 
         <button
           type="button"
-          onClick={clearCart}
+          onClick={handleClear}
           className="rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
         >
           Vaciar carrito
         </button>
       </div>
 
+      {actionError ? (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {actionError}
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[1.8fr_0.9fr]">
         <section className="space-y-4">
           {cart.map((item) => {
             const productHref = item.slug ? `/products/${item.slug}` : "/products";
-            const subtotal = getCartLineSubtotal(item);
             const productName = item.name?.trim() || "Producto sin nombre";
             const unitLabel = item.unit?.trim() || null;
 
             return (
               <article
-                key={item.productId}
+                key={item.id}
                 className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
               >
                 <div className="flex flex-col gap-4 sm:flex-row">
@@ -110,9 +194,9 @@ export default function CartPage() {
                     href={productHref}
                     className="flex h-28 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100 sm:w-32"
                   >
-                    {item.imageUrl ? (
+                    {item.image ? (
                       <img
-                        src={item.imageUrl}
+                        src={item.image}
                         alt={productName}
                         className="h-full w-full object-cover"
                       />
@@ -138,7 +222,7 @@ export default function CartPage() {
                       </p>
 
                       <p className="mt-2 text-sm font-medium text-gray-900">
-                        Subtotal: {formatPrice(subtotal)}
+                        Subtotal: {formatPrice(item.subtotal)}
                       </p>
                     </div>
 
@@ -146,7 +230,7 @@ export default function CartPage() {
                       <div className="inline-flex w-fit items-center rounded-xl border border-gray-200">
                         <button
                           type="button"
-                          onClick={() => decreaseQuantity(item.productId)}
+                          onClick={() => decrease(item)}
                           className="px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                           aria-label={`Disminuir cantidad de ${productName}`}
                         >
@@ -159,7 +243,7 @@ export default function CartPage() {
 
                         <button
                           type="button"
-                          onClick={() => increaseQuantity(item.productId)}
+                          onClick={() => increase(item)}
                           className="px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                           aria-label={`Aumentar cantidad de ${productName}`}
                         >
@@ -169,7 +253,7 @@ export default function CartPage() {
 
                       <button
                         type="button"
-                        onClick={() => removeFromCart(item.productId)}
+                        onClick={() => remove(item)}
                         className="text-sm font-medium text-red-600 hover:text-red-700"
                       >
                         Eliminar
@@ -193,9 +277,7 @@ export default function CartPage() {
 
             <div className="flex items-center justify-between">
               <span>Unidades totales</span>
-              <span>
-                {cart.reduce((acc, item) => acc + item.quantity, 0)}
-              </span>
+              <span>{cart.reduce((acc, item) => acc + item.quantity, 0)}</span>
             </div>
 
             <div className="h-px bg-gray-200" />
