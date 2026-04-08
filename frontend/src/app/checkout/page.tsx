@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  CartItem,
-  clearCart,
-  getCart,
-  getCartLineSubtotal,
-  getCartTotal,
-} from "@/lib/cart";
+import { BackendCartItem, getCart } from "@/lib/cart";
 import { createOrder } from "@/lib/orders";
 
 function formatPrice(value: number) {
@@ -27,7 +21,8 @@ type FormErrors = Partial<Record<keyof FormState, string>>;
 export default function CheckoutPage() {
   const router = useRouter();
 
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<BackendCartItem[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -40,33 +35,31 @@ export default function CheckoutPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  function loadCart() {
-    const items = getCart();
+  async function loadCart() {
+    try {
+      const data = await getCart();
 
-    if (!items.length) {
-      router.replace("/cart");
-      return;
+      if (!data.items.length) {
+        router.replace("/cart");
+        return;
+      }
+
+      setCart(data.items);
+      setTotal(data.total);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo cargar el carrito";
+      setSubmitError(message);
+    } finally {
+      setLoading(false);
     }
-
-    setCart(items);
-    setLoading(false);
   }
 
   useEffect(() => {
     loadCart();
-
-    function handleCartUpdated() {
-      loadCart();
-    }
-
-    window.addEventListener("cart-updated", handleCartUpdated);
-
-    return () => {
-      window.removeEventListener("cart-updated", handleCartUpdated);
-    };
   }, []);
-
-  const total = getCartTotal();
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -126,14 +119,6 @@ export default function CheckoutPage() {
         customerName: form.name.trim(),
         customerPhone: form.phone.trim(),
         customerAddress: form.address.trim(),
-        items: cart.map((item) => ({
-          productId: item.productId,
-          productName: item.name,
-          unitPrice: item.price,
-          quantity: item.quantity,
-          lineTotal: item.price * item.quantity,
-        })),
-        total,
       };
 
       const response = await createOrder(payload);
@@ -142,8 +127,6 @@ export default function CheckoutPage() {
         throw new Error(response.message || "No se pudo crear la orden");
       }
 
-      clearCart();
-      window.dispatchEvent(new Event("cart-updated"));
       router.replace("/checkout/success");
     } catch (error) {
       const message =
@@ -249,21 +232,14 @@ export default function CheckoutPage() {
           <h2 className="text-xl font-semibold">Resumen</h2>
 
           <div className="mt-4 space-y-4">
-            {cart.map((item) => {
-              const subtotal = getCartLineSubtotal(item);
-
-              return (
-                <div
-                  key={item.productId}
-                  className="flex justify-between text-sm"
-                >
-                  <span>
-                    {item.name} x {item.quantity}
-                  </span>
-                  <span>{formatPrice(subtotal)}</span>
-                </div>
-              );
-            })}
+            {cart.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <span>
+                  {item.name} x {item.quantity}
+                </span>
+                <span>{formatPrice(item.subtotal)}</span>
+              </div>
+            ))}
           </div>
 
           <div className="mt-6 flex justify-between border-t pt-4 font-semibold">

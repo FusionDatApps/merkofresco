@@ -8,7 +8,6 @@ import { addToCart } from "@/lib/cart";
 
 export default function ProductDetailPage() {
   const params = useParams();
-
   const slugParam = params?.slug;
 
   const slug = useMemo(() => {
@@ -23,6 +22,9 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     async function loadProductDetail() {
@@ -60,25 +62,29 @@ export default function ProductDetailPage() {
     loadProductDetail();
   }, [slug]);
 
-  function handleAddToCart(product: Product) {
-    const productName = product.name?.trim() || "Producto sin nombre";
+  async function handleAddToCart(product: Product) {
+    try {
+      setCartError(null);
+      setSuccessMessage(null);
+      setAdding(true);
 
-    const numericPrice =
-      typeof product.price === "number"
-        ? product.price
-        : Number(product.price);
+      await addToCart(product.id, 1);
 
-    addToCart({
-      productId: product.id,
-      name: productName,
-      slug: product.slug?.trim() || "",
-      price: Number.isFinite(numericPrice) ? numericPrice : 0,
-      imageUrl: product.images?.[0]?.url || null,
-      unit: product.unit || null,
-    });
+      setSuccessMessage(`"${product.name}" fue agregado correctamente al carrito.`);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "No se pudo agregar el producto al carrito";
 
-    // evento para sincronizar header sin estado global
-    window.dispatchEvent(new Event("cart-updated"));
+      setCartError(
+        message === "Stock insuficiente"
+          ? `No hay stock suficiente para "${product.name}".`
+          : message
+      );
+    } finally {
+      setAdding(false);
+    }
   }
 
   if (loading) {
@@ -195,9 +201,12 @@ export default function ProductDetailPage() {
   const categoryName = product.category?.name || "Sin categoría";
   const description = product.description?.trim() || "Sin descripción disponible";
 
+  const hasStock =
+    typeof product.stock === "number" ? product.stock > 0 : false;
+
   const stockLabel =
     typeof product.stock === "number"
-      ? product.stock > 0
+      ? hasStock
         ? `${product.stock}${product.unit ? ` ${product.unit}` : ""}`
         : "Sin stock"
       : "Stock no definido";
@@ -215,8 +224,30 @@ export default function ProductDetailPage() {
         </Link>
       </div>
 
+      {cartError ? (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
+          <p className="font-semibold text-red-800">
+            No se pudo agregar al carrito
+          </p>
+          <p className="mt-1">{cartError}</p>
+        </div>
+      ) : null}
+
+      {successMessage ? (
+        <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700 shadow-sm">
+          <p className="font-semibold text-green-800">Producto agregado</p>
+          <p className="mt-1">{successMessage}</p>
+        </div>
+      ) : null}
+
       <section className="grid gap-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:grid-cols-2">
-        <div className="overflow-hidden rounded-2xl bg-gray-100">
+        <div className="relative overflow-hidden rounded-2xl bg-gray-100">
+          {!hasStock ? (
+            <span className="absolute left-4 top-4 z-10 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+              Sin stock
+            </span>
+          ) : null}
+
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -247,16 +278,22 @@ export default function ProductDetailPage() {
 
           <div className="rounded-xl bg-gray-50 p-4">
             <p className="text-sm font-medium text-gray-900">Disponibilidad</p>
-            <p className="mt-1 text-sm text-gray-600">{stockLabel}</p>
+            <p className={`mt-1 text-sm ${hasStock ? "text-gray-600" : "font-medium text-red-600"}`}>
+              {stockLabel}
+            </p>
           </div>
 
-          {/* BOTÓN CARRITO */}
           <button
             type="button"
             onClick={() => handleAddToCart(product)}
-            className="w-full rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+            disabled={adding || !hasStock}
+            className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition bg-green-600 hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-70"
           >
-            Agregar al carrito
+            {!hasStock
+              ? "Sin stock disponible"
+              : adding
+              ? "Agregando..."
+              : "Agregar al carrito"}
           </button>
 
           <div className="space-y-2">
