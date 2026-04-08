@@ -5,7 +5,7 @@ const { createOrderService } = require("../services/order.service");
 const createOrder = async (req, res) => {
   try {
     const parsedBody = createOrderSchema.parse(req.body);
-    const userId = req.user?.id ?? null;
+    const userId = req.user?.userId ?? null; 
 
     const order = await createOrderService(parsedBody, userId);
 
