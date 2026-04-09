@@ -1,9 +1,13 @@
 const express = require("express");
-const { createOrder } = require("../controllers/order.controller");
-const { requireAuth } = require("../middlewares/auth.middleware");
-
 const router = express.Router();
 
-router.post("/", requireAuth, createOrder);
+const { requireAuth } = require("../middlewares/auth.middleware");
+const controller = require("../controllers/orders.me.controller");
+
+// EXISTENTE: POST /api/orders (NO TOCAR)
+
+// NUEVO
+router.get("/me", requireAuth, controller.getMyOrders);
+router.get("/:id", requireAuth, controller.getOrderById);
 
 module.exports = router;

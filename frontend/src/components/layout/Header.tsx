@@ -146,6 +146,18 @@ export default function Header() {
                 Dashboard
               </Link>
 
+              {/* ✅ NUEVO LINK — MIS PEDIDOS */}
+              <Link
+                href="/orders"
+                className={
+                  isActive(pathname, "/orders")
+                    ? "text-green-700"
+                    : "hover:text-green-700"
+                }
+              >
+                Mis pedidos
+              </Link>
+
               <span className="hidden text-gray-500 sm:inline">
                 {user.name || user.email || "Usuario"}
               </span>
